@@ -1,0 +1,49 @@
+defaultEntryPoints = ["http"]
+
+logLevel = "INFO"
+sendAnonymousUsage = true
+
+# [traefikLog]
+#   filePath = "/logs/traefik.log"
+#   format   = "json"
+
+# [accessLog]
+#   filePath = "/logs/access.log"
+#   format = "json"
+
+[api]
+  # entryPoint = "traefik"
+  dashboard = true
+
+# [web]
+#  address = ":8088"
+#  [web.statistics]
+
+# Ping definition
+[ping]
+    entryPoint = "traefik"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+
+  # might need to disable following two lines to get first Let's Encrypt certs
+  # [entryPoints.http.redirect]
+    # entryPoint = "https"
+
+
+
+################################################################
+# Docker configuration backend
+################################################################
+[docker]
+
+endpoint = "unix:///var/run/docker.sock"
+domain = "docker.localhost"
+watch = true
+
+# Expose containers by default in traefik
+exposedbydefault = false
+
+# Use Swarm Mode services as data provider
+swarmmode = false

@@ -1,0 +1,120 @@
+# Development docker-compose file
+# docker-compose up -d
+
+version: "3.2"
+
+volumes:
+  elasticsearch_data:
+    driver: local
+  kibana_data:
+    driver: local
+
+networks:
+  biosearch:
+    external: false
+
+services:
+
+  biosearch:
+    container_name: biosearch
+    image: biosearch/biosearch:localdev
+    build:
+      context: ./biosearch
+      dockerfile: ./docker/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./biosearch:/app
+      - ./conf/biosearch.yml:/app/config.yml
+    networks:
+      biosearch:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10k"
+        max-file: "3"
+    restart: unless-stopped
+
+
+  elasticsearch:
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+    ports:
+      - "9210:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./conf/elasticsearch.yml:/conf/elasticsearch.yml
+    networks:
+      biosearch:
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.watcher.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5k"
+        max-file: "3"
+    restart: unless-stopped
+
+  # Optional for viewing Elasticsearch terminology search service
+  # http://localhost:5601
+  bel_kibana:
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:6.5.4
+    ports:
+      - 5601:5601
+    volumes:
+      - kibana_data:/usr/share/kibana/data
+    networks:
+      biosearch:
+    labels:
+      - traefik.enable=true
+      - traefik.backend=kibana
+      - traefik.frontend.rule=Host:kibana.${HOST_NAME:?err}
+      - traefik.port=5601
+      - traefik.docker.network=biosearch
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - xpack.security.enabled=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5k"
+        max-file: "3"
+    restart: unless-stopped
+
+
+  traefik:
+    image: traefik:1.7.4
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./conf/traefik.toml:/traefik.toml
+      - ./logs:/logs
+    networks:
+      biosearch:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10k"
+        max-file: "3"
+    # network_mode: "host"
+    labels:
+      - traefik.enable=true
+      - traefik.backend=traefik
+      - traefik.frontend.rule=Host:traefik.${HOST_NAME:?err}
+      - traefik.port=8080
+      - traefik.docker.network=biosearch
+    restart: "unless-stopped"

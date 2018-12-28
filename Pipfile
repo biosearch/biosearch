@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+pip = "==18.0"
+lxml = "*"
+elasticsearch = "*"
+structlog = "*"
+pyyaml = "*"
+
+[dev-packages]
+pytest = "*"
+coverage = "*"
+pytest-cov = "*"
+pytest-sugar = "*"
+"pytest-pep8" = "*"
+pytest-env = "*"
+mypy = "*"
+
+[requires]
+python_version = "3.7"
