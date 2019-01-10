@@ -4,6 +4,10 @@ Content conversion into Elasticsearch compatible JSON
 
 """
 
+import structlog
+log = structlog.getLogger()
+
+
 class PubMed_XML_Parser:
     """
     """
@@ -11,7 +15,7 @@ class PubMed_XML_Parser:
     def __init__(self, xml_chunk):
         """
         """
-
+        pass
 
     def get_pmid(self, xml_record):
         """
@@ -24,7 +28,8 @@ class PubMed_XML_Parser:
         """
         try:
             return xml_record.find('PMID').text
-        except:
+        except Exception as e:
+            log.info('')
             return None
 
 
@@ -87,10 +92,10 @@ class PubMed_XML_Parser:
             for ptp in pub_type_chunk.findall('PublicationType'):
                 if ptp.text is not None:
                     pub_type_list.append(ptp.text)
-        except:
-            pass
-        return pub_type_list
+        except Exception as e:
+            log.warning('Could not get publication type - ADD XML Record ID here')
 
+        return pub_type_list
 
     def get_mesh_terms(xml_record):
         """
@@ -108,10 +113,9 @@ class PubMed_XML_Parser:
                 m.find('DescriptorName').attrib.get('UI', '') + ": " +
                 m.find('DescriptorName').text for m in mesh.getchildren()
             ]
-        except:
+        except Exception as e:
             mesh_term_list = list()
         return mesh_term_list
-
 
     def get_chemical_substances(xml_record):
         """
@@ -128,10 +132,9 @@ class PubMed_XML_Parser:
                 m.find('NameOfSubstance').attrib.get('UI', '') + ": " +
                 m.find('NameOfSubstance').text for m in chem.getchildren()
             ]
-        except:
+        except Exception as e:
             chem_list = list()
         return chem_list
-
 
     def get_keywords(xml_record):
         """
@@ -143,21 +146,22 @@ class PubMed_XML_Parser:
         Returns keywords: list of keyword phrases contained in the document
         """
         try:
+            keyword_list = []
             kwds = xml_record.find('KeywordList')
             for k in keyword_list.findall('Keyword'):
                 if k.text is not None:
                     keyword_list.append(k.text.strip())
-        except:
+        except Exception as e:
             keyword_list = list()
         return keyword_list
 
-##----------------------------------------------------------------------------##
+# #----------------------------------------------------------------------------##
 
 
 def xml_to_json(xml_chunk):
     """
     """
+    json_record = {}
+    yield json_record
 
-        yield json_record
-
-##----------------------------------------------------------------------------##
+# #----------------------------------------------------------------------------##
