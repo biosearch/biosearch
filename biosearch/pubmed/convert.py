@@ -28,6 +28,49 @@ class PubMed_XML_Parser:
             return None
 
 
+    def get_title(self, xml_record):
+        """
+        Extract article title
+
+        Args:
+            xml_record: PubMed article MedlineCitation element
+
+        Returns title, string with title text
+        """
+        article = xml_record.find('Article')
+        try:
+            title_chunk = article.find('ArticleTitle')).strip()
+            title = ''.join(title_chunk.itertext()).strip()
+        except:
+            title = ''
+        return title
+
+
+    def get_abstract(self, xml_record):
+        """
+        """
+        if article.find('Abstract/AbstractText') is not None:
+            # parsing structured abstract
+            if len(article.findall('Abstract/AbstractText')) > 1:
+                abstract_list = list()
+                for abstract in article.findall('Abstract/AbstractText'):
+                    section = abstract.attrib.get(category, '')
+                    if section != 'UNASSIGNED':
+                        abstract_list.append('\n')
+                        abstract_list.append(abstract.attrib.get(category, ''))
+                    section_text = stringify_children(abstract).strip()
+                    abstract_list.append(section_text)
+                abstract = '\n'.join(abstract_list).strip()
+            else:
+                abstract = stringify_children(article.find('Abstract/AbstractText')).strip() or ''
+        elif article.find('Abstract') is not None:
+
+            abstract = stringify_children(article.find('Abstract')).strip() or ''
+        else:
+            abstract = ''
+
+
+
     def get_pub_type(self, xml_record):
         """
         Extract publication type(s) from article MedlineCitation element
