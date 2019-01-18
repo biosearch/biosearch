@@ -4,6 +4,9 @@ Content conversion into Elasticsearch compatible JSON
 
 """
 
+#from lxml import etree
+import xml.etree.ElementTree as ET
+
 import structlog
 log = structlog.getLogger()
 
@@ -44,7 +47,7 @@ class PubMed_XML_Parser:
         """
         article = xml_record.find('Article')
         try:
-            title_chunk = article.find('ArticleTitle')).strip()
+            title_chunk = article.find('ArticleTitle')#.strip()
             title = ''.join(title_chunk.itertext()).strip()
         except:
             title = ''
@@ -53,24 +56,37 @@ class PubMed_XML_Parser:
 
     def get_abstract(self, xml_record):
         """
+        Extract article abstract section text
+
+        Args:
+            xml_record: PubMed article MedlineCitation element
+
+        Returns abstract, string with abstract paragraph(s) text
         """
-        if article.find('Abstract/AbstractText') is not None:
+        if xml_record.find('Abstract/AbstractText') is not None:
             # parsing structured abstract
             if len(article.findall('Abstract/AbstractText')) > 1:
                 abstract_list = list()
-                for abstract in article.findall('Abstract/AbstractText'):
-                    section = abstract.attrib.get(category, '')
+                for abstract_chunk in xml_record.findall('Abstract/AbstractText'):
+                    section = abstract_chunk.attrib.get(category, '')
                     if section != 'UNASSIGNED':
                         abstract_list.append('\n')
-                        abstract_list.append(abstract.attrib.get(category, ''))
-                    section_text = stringify_children(abstract).strip()
-                    abstract_list.append(section_text)
+                        abstract_list.append(abstract_chunk.attrib.get(category, ''))
+                    abstract_chunk_text = ''.join(abstract_chunk.itertext()).strip()
+                    abstract_list.append(abstract_chunk_text)
                 abstract = '\n'.join(abstract_list).strip()
             else:
-                abstract = stringify_children(article.find('Abstract/AbstractText')).strip() or ''
-        elif article.find('Abstract') is not None:
-
-            abstract = stringify_children(article.find('Abstract')).strip() or ''
+                try:
+                    abstract_chunk = xml_record.find('Abstract/AbstractText').strip()
+                    abstract = ''.join(abstract_chunk.itertext()).strip()
+                except:
+                    abstract = ''
+        elif xml_record.find('Abstract') is not None:
+            try:
+                abstract_chunk = xml_record.find('Abstract').strip()
+                abstract = ''.join(abstract_chunk.itertext()).strip()
+            except:
+                abstract = ''
         else:
             abstract = ''
 
@@ -86,7 +102,8 @@ class PubMed_XML_Parser:
         Returns pub_type_list, list of string publication types,
             e.g., ["Review", "Clinical Trial"]
         """
-        pub_type_chunk = xml_record.find('PublicationTypeList')
+        pub_type_chunk = xml_record.find('Article/PublicationTypeList')
+        #print('pub_type_chunk:', pub_type_chunk)
         pub_type_list = list()
         try:
             for ptp in pub_type_chunk.findall('PublicationType'):
@@ -97,7 +114,7 @@ class PubMed_XML_Parser:
 
         return pub_type_list
 
-    def get_mesh_terms(xml_record):
+    def get_mesh_terms(self, xml_record):
         """
         Extract MeSH headings from article MedlineCitation element
 
@@ -117,7 +134,13 @@ class PubMed_XML_Parser:
             mesh_term_list = list()
         return mesh_term_list
 
-    def get_chemical_substances(xml_record):
+        '''
+        convert.py:131: DeprecationWarning: This method will be removed in future versions.
+        Use 'list(elem)' or iteration over elem instead.
+        m.find('DescriptorName').text for m in mesh.getchildren()
+        '''
+
+    def get_chemical_substances(self, xml_record):
         """
         Extract chemical substances from article MedlineCitation element
 
@@ -135,8 +158,13 @@ class PubMed_XML_Parser:
         except Exception as e:
             chem_list = list()
         return chem_list
+        '''
+        convert.py:150: DeprecationWarning: This method will be removed in future versions.
+        Use 'list(elem)' or iteration over elem instead.
+        m.find('NameOfSubstance').text for m in chem.getchildren()
+        '''
 
-    def get_keywords(xml_record):
+    def get_keywords(self, xml_record):
         """
         Extract keywords from article MedlineCitation element
 
@@ -145,14 +173,16 @@ class PubMed_XML_Parser:
 
         Returns keywords: list of keyword phrases contained in the document
         """
+        keyword_list = list()
+        kwds_chunk = xml_record.find('KeywordList')
+        #rint(kwds_chunk)
         try:
-            keyword_list = []
-            kwds = xml_record.find('KeywordList')
-            for k in keyword_list.findall('Keyword'):
+            for k in kwds_chunk.findall('Keyword'):
                 if k.text is not None:
                     keyword_list.append(k.text.strip())
         except Exception as e:
-            keyword_list = list()
+            pass
+
         return keyword_list
 
 # #----------------------------------------------------------------------------##
@@ -161,7 +191,48 @@ class PubMed_XML_Parser:
 def xml_to_json(xml_chunk):
     """
     """
+    P = PubMed_XML_Parser(xml_chunk)
+
     json_record = {}
     yield json_record
 
 # #----------------------------------------------------------------------------##
+
+if __name__ == "__main__":
+
+    # test with a sample XML files
+
+    with open('example.xml', 'r') as fhin:
+        xml_chunk = fhin.read()
+
+    P = PubMed_XML_Parser(xml_chunk)
+    PubmedArticleSet = ET.fromstring(xml_chunk)
+
+    for PubmedArticle in PubmedArticleSet:
+        MedlineCitation = PubmedArticle.find('MedlineCitation')
+        #pmid = MedlineCitation.find('PMID').text
+        pmid = P.get_pmid(MedlineCitation)
+        print(pmid)
+        title = P.get_title(MedlineCitation)
+        print('Title:', title)
+        pubtype = P.get_pub_type(MedlineCitation)
+        print('Pub Type:', ', '.join(pubtype))
+        mesh = P.get_mesh_terms(MedlineCitation)
+        print('MeSH Headings:', mesh)
+        chem = P.get_chemical_substances(MedlineCitation)
+        print('Chemical Substances:', chem)
+        kwds = P.get_keywords(MedlineCitation)
+        print('Keywords:', kwds)
+        print('\n')
+
+    '''
+    medline_citations = tree.findall('//MedlineCitationSet/MedlineCitation')
+    if len(medline_citations) == 0:
+        medline_citations = tree.findall('//MedlineCitation')
+    for xml_record in medline_citations:
+        pmid = P.get_pmid(MedlineCitation)
+        print('PMID:', pmid)
+    '''
+
+
+##
