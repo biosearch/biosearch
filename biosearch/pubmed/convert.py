@@ -63,32 +63,36 @@ class PubMed_XML_Parser:
 
         Returns abstract, string with abstract paragraph(s) text
         """
-        if xml_record.find('Abstract/AbstractText') is not None:
+        category = 'NlmCategory' #if nlm_category else 'Label'
+        if xml_record.find('Article/Abstract/AbstractText') is not None:
             # parsing structured abstract
-            if len(article.findall('Abstract/AbstractText')) > 1:
+            if len(xml_record.findall('Article/Abstract/AbstractText')) > 1:
                 abstract_list = list()
-                for abstract_chunk in xml_record.findall('Abstract/AbstractText'):
+                for abstract_chunk in xml_record.findall('Article/Abstract/AbstractText'):
                     section = abstract_chunk.attrib.get(category, '')
+                    #print('section:', section)
                     if section != 'UNASSIGNED':
-                        abstract_list.append('\n')
+                        abstract_list.append('')
                         abstract_list.append(abstract_chunk.attrib.get(category, ''))
+                        abstract_list.append('')
                     abstract_chunk_text = ''.join(abstract_chunk.itertext()).strip()
                     abstract_list.append(abstract_chunk_text)
                 abstract = '\n'.join(abstract_list).strip()
             else:
                 try:
-                    abstract_chunk = xml_record.find('Abstract/AbstractText').strip()
+                    abstract_chunk = xml_record.find('Article/Abstract/AbstractText') #.strip()
                     abstract = ''.join(abstract_chunk.itertext()).strip()
                 except:
                     abstract = ''
         elif xml_record.find('Abstract') is not None:
             try:
-                abstract_chunk = xml_record.find('Abstract').strip()
+                abstract_chunk = xml_record.find('Abstract')#.strip()
                 abstract = ''.join(abstract_chunk.itertext()).strip()
             except:
                 abstract = ''
         else:
             abstract = ''
+        return abstract
 
 
 
@@ -223,6 +227,8 @@ if __name__ == "__main__":
         print('Chemical Substances:', chem)
         kwds = P.get_keywords(MedlineCitation)
         print('Keywords:', kwds)
+        abstract = P.get_abstract(MedlineCitation)
+        print('Abstract:', abstract)
         print('\n')
 
     '''
