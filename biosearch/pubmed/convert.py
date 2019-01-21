@@ -68,19 +68,23 @@ class PubMed_XML_Parser:
             # parsing structured abstract
             if len(xml_record.findall('Article/Abstract/AbstractText')) > 1:
                 abstract_list = list()
-                for abstract_chunk in xml_record.findall('Article/Abstract/AbstractText'):
+                for abstract_chunk in xml_record.findall(
+                    'Article/Abstract/AbstractText'):
                     section = abstract_chunk.attrib.get(category, '')
                     #print('section:', section)
                     if section != 'UNASSIGNED':
                         abstract_list.append('')
-                        abstract_list.append(abstract_chunk.attrib.get(category, ''))
+                        abstract_list.append(abstract_chunk.attrib.get(
+                            category, ''))
                         abstract_list.append('')
-                    abstract_chunk_text = ''.join(abstract_chunk.itertext()).strip()
+                    abstract_chunk_text = ''.join(
+                        abstract_chunk.itertext()).strip()
                     abstract_list.append(abstract_chunk_text)
                 abstract = '\n'.join(abstract_list).strip()
             else:
                 try:
-                    abstract_chunk = xml_record.find('Article/Abstract/AbstractText') #.strip()
+                    abstract_chunk = xml_record.find(
+                        'Article/Abstract/AbstractText') #.strip()
                     abstract = ''.join(abstract_chunk.itertext()).strip()
                 except:
                     abstract = ''
