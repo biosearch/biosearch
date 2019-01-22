@@ -6,7 +6,7 @@ Content conversion into Elasticsearch compatible JSON
 
 #from lxml import etree
 import xml.etree.ElementTree as ET
-
+import re
 import structlog
 log = structlog.getLogger()
 
@@ -72,25 +72,27 @@ class PubMed_XML_Parser:
                     'Article/Abstract/AbstractText'):
                     section = abstract_chunk.attrib.get(category, '')
                     #print('section:', section)
+                    abstract_list.append('')
                     if section != 'UNASSIGNED':
                         abstract_list.append('')
                         abstract_list.append(abstract_chunk.attrib.get(
                             category, ''))
-                        abstract_list.append('')
                     abstract_chunk_text = ''.join(
                         abstract_chunk.itertext()).strip()
+                    abstract_chunk_text = cleanup_text(abstract_chunk_text)
                     abstract_list.append(abstract_chunk_text)
                 abstract = '\n'.join(abstract_list).strip()
+                abstract = re.sub('\n{3,}', '\n\n', abstract)
             else:
                 try:
                     abstract_chunk = xml_record.find(
-                        'Article/Abstract/AbstractText') #.strip()
+                        'Article/Abstract/AbstractText')
                     abstract = ''.join(abstract_chunk.itertext()).strip()
                 except:
                     abstract = ''
         elif xml_record.find('Abstract') is not None:
             try:
-                abstract_chunk = xml_record.find('Abstract')#.strip()
+                abstract_chunk = xml_record.find('Abstract')
                 abstract = ''.join(abstract_chunk.itertext()).strip()
             except:
                 abstract = ''
@@ -98,6 +100,49 @@ class PubMed_XML_Parser:
             abstract = ''
         return abstract
 
+
+    def get_author_info(self, xml_record):
+        """
+        Extract author/contributor info: names and affiliations
+
+        Args:
+            xml_record: PubMed article MedlineCitation element
+
+        Returns authors, tupule with list of author details:
+            [full name, affiliation] where full name is in the format:
+            "LastName, ForeName Initials" and affiliation is a semicolon
+            separated string of affiliations.
+        """
+        authors = list()
+        author_info_chunk = xml_record.find('Article/AuthorList')
+        if author_info_chunk is not None:
+            for author_chunk in author_info_chunk.findall('Author'):
+                #print('author_chunk:', author_chunk)
+                try:
+                    last_name = author_chunk.find('LastName').text
+                except:
+                    last_name = ''
+                try:
+                    first_name = author_chunk.find('ForeName').text
+                except:
+                    first_name = ''
+                try:
+                    initials = author_chunk.find('Initials').text
+                except:
+                    initials = ''
+                name = '%s, %s %s' % (last_name, first_name, initials)
+                all_auth_affs = list()
+                aff_chunk = author_chunk.find('AffiliationInfo')
+                try:
+                    for aff in aff_chunk.findall('Affiliation'):
+                        all_auth_affs.append(aff.text)
+                except:
+                    pass
+                    #print('missing affiliations')
+                authors.append((name, '; '.join(all_auth_affs)))
+        else:
+            print('author_chunk: None')
+        return authors
 
 
     def get_pub_type(self, xml_record):
@@ -119,8 +164,8 @@ class PubMed_XML_Parser:
                     pub_type_list.append(ptp.text)
         except Exception as e:
             log.warning('Could not get publication type - ADD XML Record ID here')
-
         return pub_type_list
+
 
     def get_mesh_terms(self, xml_record):
         """
@@ -183,7 +228,7 @@ class PubMed_XML_Parser:
         """
         keyword_list = list()
         kwds_chunk = xml_record.find('KeywordList')
-        #rint(kwds_chunk)
+        #print(kwds_chunk)
         try:
             for k in kwds_chunk.findall('Keyword'):
                 if k.text is not None:
@@ -195,6 +240,14 @@ class PubMed_XML_Parser:
 
 # #----------------------------------------------------------------------------##
 
+def cleanup_text(chunk):
+    lines = re.split('\n', chunk)
+    clean_lines = list()
+    for line in lines:
+        # strip HTML tags
+        line = re.sub('<.*?>', '', line)
+        clean_lines.append(line.strip())
+    return '\n'.join(clean_lines)
 
 def xml_to_json(xml_chunk):
     """
@@ -233,6 +286,8 @@ if __name__ == "__main__":
         print('Keywords:', kwds)
         abstract = P.get_abstract(MedlineCitation)
         print('Abstract:', abstract)
+        authors = P.get_author_info(MedlineCitation)
+        print('Authors:', authors)
         print('\n')
 
     '''
