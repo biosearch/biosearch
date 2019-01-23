@@ -167,6 +167,70 @@ class PubMed_XML_Parser:
         return pub_type_list
 
 
+    def get_journal_info(self, xml_record):
+        """
+        Extract journal info from article MedlineCitation element
+
+        Args:
+            xml_record: PubMed article MedlineCitation element
+
+        Returns journal_info, dictionary of journal properties: name, issue,
+            volume, etc.
+
+        <Journal>
+            <ISSN IssnType="Print">2095-1779</ISSN>
+            <JournalIssue CitedMedium="Print">
+                <Volume>7</Volume>
+                <Issue>3</Issue>
+                <PubDate>
+                    <Year>2017</Year>
+                    <Month>Jun</Month>
+                </PubDate>
+            </JournalIssue>
+            <Title>Journal of pharmaceutical analysis</Title>
+            <ISOAbbreviation>J Pharm Anal</ISOAbbreviation>
+        </Journal>
+        <Pagination>
+            <MedlinePgn>950-968</MedlinePgn>
+        </Pagination>
+        """
+        journal_info = dict()
+        journal_chunk = xml_record.find('Article/Journal')
+        issn_chunk = journal_chunk.find('ISSN')
+        try:
+            issn_type = issn_chunk.attrib.get('IssnType', '')
+            if issn_type is not None:
+                journal_info['ISSN'] = issn_chunk.text
+        except:
+            pass
+        journal_info['title'] = journal_chunk.find('Title').text
+        journal_info['abbrev'] = journal_chunk.find('ISOAbbreviation').text
+        issue_chunk = journal_chunk.find('JournalIssue')
+        try:
+            journal_info['volume'] = issue_chunk.find('Volume').text
+        except:
+            pass
+        try:
+            journal_info['issue'] = issue_chunk.find('Issue').text
+        except:
+            pass
+        pubdate_chunk = issue_chunk.find('PubDate')
+        try:
+            journal_info['pubyear'] = pubdate_chunk.find('Year').text
+        except:
+            pass
+        try:
+            journal_info['pubmonth'] = pubdate_chunk.find('Month').text
+        except:
+            pass
+        journal_chunk = xml_record.find('Article/Pagination')
+        try:
+            journal_info['pages'] = journal_chunk.find('MedlinePgn').text
+        except:
+            pass
+        return journal_info
+
+
     def get_mesh_terms(self, xml_record):
         """
         Extract MeSH headings from article MedlineCitation element
@@ -238,7 +302,7 @@ class PubMed_XML_Parser:
 
         return keyword_list
 
-# #----------------------------------------------------------------------------##
+##----------------------------------------------------------------------------##
 
 def cleanup_text(chunk):
     lines = re.split('\n', chunk)
@@ -249,6 +313,7 @@ def cleanup_text(chunk):
         clean_lines.append(line.strip())
     return '\n'.join(clean_lines)
 
+
 def xml_to_json(xml_chunk):
     """
     """
@@ -257,7 +322,8 @@ def xml_to_json(xml_chunk):
     json_record = {}
     yield json_record
 
-# #----------------------------------------------------------------------------##
+
+##----------------------------------------------------------------------------##
 
 if __name__ == "__main__":
 
@@ -270,24 +336,28 @@ if __name__ == "__main__":
     PubmedArticleSet = ET.fromstring(xml_chunk)
 
     for PubmedArticle in PubmedArticleSet:
+        print('-'*80)
         MedlineCitation = PubmedArticle.find('MedlineCitation')
         #pmid = MedlineCitation.find('PMID').text
         pmid = P.get_pmid(MedlineCitation)
-        print(pmid)
+        print('PMID:', pmid)
         title = P.get_title(MedlineCitation)
-        print('Title:', title)
+#        print('Title:', title)
         pubtype = P.get_pub_type(MedlineCitation)
-        print('Pub Type:', ', '.join(pubtype))
+#        print('Pub Type:', ', '.join(pubtype))
         mesh = P.get_mesh_terms(MedlineCitation)
-        print('MeSH Headings:', mesh)
+#        print('MeSH Headings:', mesh)
         chem = P.get_chemical_substances(MedlineCitation)
-        print('Chemical Substances:', chem)
+#        print('Chemical Substances:', chem)
         kwds = P.get_keywords(MedlineCitation)
-        print('Keywords:', kwds)
+#        print('Keywords:', kwds)
         abstract = P.get_abstract(MedlineCitation)
-        print('Abstract:', abstract)
+#        print('Abstract:', len(abstract), 'characters')
         authors = P.get_author_info(MedlineCitation)
-        print('Authors:', authors)
+#        print('Authors:', authors)
+        journal_info = P.get_journal_info(MedlineCitation)
+        print('Journal:', journal_info)
+
         print('\n')
 
     '''
