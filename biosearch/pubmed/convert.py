@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-Content conversion into Elasticsearch compatible JSON
+Content conversion into Elasticsearch compatible JSON.
 
 """
 
@@ -27,7 +27,7 @@ class PubMed_XML_Parser:
         Args:
             xml_record: PubMed article MedlineCitation element
 
-        Returns pmid, string with article PMID
+        Returns pmid, string with article PMID.
         """
         try:
             return xml_record.find('PMID').text
@@ -38,12 +38,12 @@ class PubMed_XML_Parser:
 
     def get_title(self, xml_record):
         """
-        Extract article title
+        Extract article title.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
-        Returns title, string with title text
+        Returns title, string with title text.
         """
         article = xml_record.find('Article')
         try:
@@ -56,12 +56,12 @@ class PubMed_XML_Parser:
 
     def get_abstract(self, xml_record):
         """
-        Extract article abstract section text
+        Extract article abstract section text.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
-        Returns abstract, string with abstract paragraph(s) text
+        Returns abstract, string with abstract paragraph(s) text.
         """
         category = 'NlmCategory' #if nlm_category else 'Label'
         if xml_record.find('Article/Abstract/AbstractText') is not None:
@@ -103,7 +103,7 @@ class PubMed_XML_Parser:
 
     def get_author_info(self, xml_record):
         """
-        Extract author/contributor info: names and affiliations
+        Extract author/contributor info: names and affiliations.
 
         Args:
             xml_record: PubMed article MedlineCitation element
@@ -147,13 +147,13 @@ class PubMed_XML_Parser:
 
     def get_pub_type(self, xml_record):
         """
-        Extract publication type(s) from article MedlineCitation element
+        Extract publication type(s) from article MedlineCitation element.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
         Returns pub_type_list, list of string publication types,
-            e.g., ["Review", "Clinical Trial"]
+            e.g., ["Review", "Clinical Trial"].
         """
         pub_type_chunk = xml_record.find('Article/PublicationTypeList')
         #print('pub_type_chunk:', pub_type_chunk)
@@ -169,14 +169,16 @@ class PubMed_XML_Parser:
 
     def get_journal_info(self, xml_record):
         """
-        Extract journal info from article MedlineCitation element
+        Extract journal info from article MedlineCitation element.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
         Returns journal_info, dictionary of journal properties: name, issue,
-            volume, etc.
+        volume, etc.
 
+        Example of elements looked for:
+        ...
         <Journal>
             <ISSN IssnType="Print">2095-1779</ISSN>
             <JournalIssue CitedMedium="Print">
@@ -190,9 +192,11 @@ class PubMed_XML_Parser:
             <Title>Journal of pharmaceutical analysis</Title>
             <ISOAbbreviation>J Pharm Anal</ISOAbbreviation>
         </Journal>
+        ...
         <Pagination>
             <MedlinePgn>950-968</MedlinePgn>
         </Pagination>
+        ...
         """
         journal_info = dict()
         journal_chunk = xml_record.find('Article/Journal')
@@ -233,13 +237,13 @@ class PubMed_XML_Parser:
 
     def get_mesh_terms(self, xml_record):
         """
-        Extract MeSH headings from article MedlineCitation element
+        Extract MeSH headings from article MedlineCitation element.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
         Returns mesh_terms, list of MeSH (Medical Subject Headings) terms
-            contained in the document
+        contained in the document.
         """
         try:
             mesh = xml_record.find('MeshHeadingList')
@@ -259,12 +263,12 @@ class PubMed_XML_Parser:
 
     def get_chemical_substances(self, xml_record):
         """
-        Extract chemical substances from article MedlineCitation element
+        Extract chemical substances from article MedlineCitation element.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
-        Returns chem_list: list of chemical substancs contained in the document
+        Returns chem_list: list of chemical substancs contained in the document.
         """
         try:
             chem = xml_record.find('ChemicalList')
@@ -281,14 +285,15 @@ class PubMed_XML_Parser:
         m.find('NameOfSubstance').text for m in chem.getchildren()
         '''
 
+
     def get_keywords(self, xml_record):
         """
-        Extract keywords from article MedlineCitation element
+        Extract keywords from article MedlineCitation element.
 
         Args:
             xml_record: PubMed article MedlineCitation element
 
-        Returns keywords: list of keyword phrases contained in the document
+        Returns keywords: list of keyword phrases contained in the document.
         """
         keyword_list = list()
         kwds_chunk = xml_record.find('KeywordList')
@@ -302,9 +307,60 @@ class PubMed_XML_Parser:
 
         return keyword_list
 
+
+    def get_reference_list(self, xml_record):
+        """
+        Extract a list of references articles from article PubmedData element.
+
+        Args:
+            xml_record: PubMed article PubmedData element
+
+        Returns references: list tupules of article ids referenced by this
+        article, with format of each reference ([IdType],[ArticleId]),
+        e.g., ('pubmed','9050830').
+
+        Example of elements looked for:
+
+        ...
+        <ReferenceList>
+            <Reference>
+                <Citation>Nature. 2001 Dec 20-27;414(6866):883-7</Citation>
+                <ArticleIdList>
+                    <ArticleId IdType="pubmed">11780055</ArticleId>
+                </ArticleIdList>
+            </Reference>
+            ...
+        </ReferenceList>
+        ...
+        """
+        references = list()
+        references_chunk = xml_record.find('ReferenceList')
+        if not references_chunk:
+            return references
+        for ref_chunk in references_chunk.findall('Reference/ArticleIdList'):
+            article_id_element = ref_chunk.find('ArticleId')
+            try:
+                id_type = article_id_element.attrib.get('IdType', '')
+                if id_type is not None:
+                    article_id = article_id_element.text
+                    references.append((id_type, article_id))
+            except:
+                pass
+
+        return references
+
 ##----------------------------------------------------------------------------##
 
 def cleanup_text(chunk):
+    """
+    Remove HTML tags form text lines.
+
+    Args:
+        chunk (str) - extracted abstract text chunk with potential HTML
+        to be removed
+
+    Returns newline-separated abstract lines with HTML tags removed.
+    """
     lines = re.split('\n', chunk)
     clean_lines = list()
     for line in lines:
@@ -338,13 +394,14 @@ if __name__ == "__main__":
     for PubmedArticle in PubmedArticleSet:
         print('-'*80)
         MedlineCitation = PubmedArticle.find('MedlineCitation')
+        PubmedData = PubmedArticle.find('PubmedData')
         #pmid = MedlineCitation.find('PMID').text
         pmid = P.get_pmid(MedlineCitation)
         print('PMID:', pmid)
         title = P.get_title(MedlineCitation)
-#        print('Title:', title)
+        print('Title:', title)
         pubtype = P.get_pub_type(MedlineCitation)
-#        print('Pub Type:', ', '.join(pubtype))
+        print('Pub Type:', ', '.join(pubtype))
         mesh = P.get_mesh_terms(MedlineCitation)
 #        print('MeSH Headings:', mesh)
         chem = P.get_chemical_substances(MedlineCitation)
@@ -356,8 +413,10 @@ if __name__ == "__main__":
         authors = P.get_author_info(MedlineCitation)
 #        print('Authors:', authors)
         journal_info = P.get_journal_info(MedlineCitation)
-        print('Journal:', journal_info)
-
+#        print('Journal:', journal_info)
+        print('PubYear:', journal_info['pubyear'])
+        references = P.get_reference_list(PubmedData)
+        print('References:', references)
         print('\n')
 
     '''
