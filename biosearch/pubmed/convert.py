@@ -4,7 +4,6 @@ Content conversion into Elasticsearch compatible JSON.
 
 """
 
-# from lxml import etree
 import xml.etree.ElementTree as ET
 import re
 import structlog
@@ -17,8 +16,6 @@ class PubMed_XML_Parser:
     """
 
     def __init__(self, xml_chunk):
-        """
-        """
         pass
 
     def get_pmid(self, xml_record):
@@ -49,7 +46,7 @@ class PubMed_XML_Parser:
         try:
             title_chunk = article.find("ArticleTitle")  # .strip()
             title = "".join(title_chunk.itertext()).strip()
-        except:
+        except Exception:
             title = ""
         return title
 
@@ -83,13 +80,13 @@ class PubMed_XML_Parser:
                 try:
                     abstract_chunk = xml_record.find("Article/Abstract/AbstractText")
                     abstract = "".join(abstract_chunk.itertext()).strip()
-                except:
+                except Exception:
                     abstract = ""
         elif xml_record.find("Abstract") is not None:
             try:
                 abstract_chunk = xml_record.find("Abstract")
                 abstract = "".join(abstract_chunk.itertext()).strip()
-            except:
+            except Exception:
                 abstract = ""
         else:
             abstract = ""
@@ -157,6 +154,7 @@ class PubMed_XML_Parser:
                     pub_type_list.append(ptp.text)
         except Exception as e:
             log.warning("Could not get publication type - ADD XML Record ID here")
+
         return pub_type_list
 
     def get_journal_info(self, xml_record):
@@ -372,8 +370,6 @@ def xml_to_json(xml_chunk):
     yield json_record
 
 
-##----------------------------------------------------------------------------##
-
 if __name__ == "__main__":
 
     # test with a sample XML files
@@ -420,6 +416,3 @@ if __name__ == "__main__":
         pmid = P.get_pmid(MedlineCitation)
         print('PMID:', pmid)
     """
-
-
-##

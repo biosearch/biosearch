@@ -16,11 +16,8 @@ COPY Pipfile.lock Pipfile.lock
 # -- Install dependencies:
 RUN set -ex && pipenv install --deploy --system
 
+COPY ./biosearch /app
+
 USER api
 
-# Volume mount ./api directory to /app in docker-compose file for development
-
-# HEALTHCHECK CMD curl --fail http://localhost:8000/healthcheck || exit 1
-
-# https://sebest.github.io/post/protips-using-gunicorn-inside-a-docker-image/
-CMD gunicorn --config /app/gunicorn_conf.py --log-config /app/gunicorn_log.conf -b 0.0.0.0:8000 app:api
+CMD [ "python", "/app/main.py" ]

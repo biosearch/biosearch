@@ -19,6 +19,7 @@ pytest-sugar = "*"
 "pytest-pep8" = "*"
 pytest-env = "*"
 mypy = "*"
+"flake8" = "*"
 
 [requires]
 python_version = "3.7"

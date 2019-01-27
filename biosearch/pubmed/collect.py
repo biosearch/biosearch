@@ -3,7 +3,7 @@
 Content collection module.
 
 """
-import argparse
+
 import ftputil
 import gzip
 from io import BytesIO
@@ -57,8 +57,6 @@ class Downloader:
             yield gzip.GzipFile(fileobj=memfile).read().decode("utf-8")
 
 
-##----------------------------------------------------------------------------##
-
 if __name__ == "__main__":
     # Run some tests
     D = Downloader("baseline")
@@ -73,5 +71,3 @@ if __name__ == "__main__":
 
     for xml_file in D.xml_file_generator([972, 972]):
         print(xml_file[:1000])
-
-##----------------------------------------------------------------------------##

@@ -24,7 +24,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./biosearch:/app
+      - ./biosearch:/app  # for development purposes
       - ./conf/biosearch.yml:/app/config.yml
     networks:
       biosearch:
@@ -40,7 +40,7 @@ services:
     container_name: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:6.5.4
     ports:
-      - "9210:9200"
+      - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
       - ./conf/elasticsearch.yml:/conf/elasticsearch.yml
@@ -49,7 +49,7 @@ services:
     environment:
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
       - xpack.security.enabled=false
       - xpack.watcher.enabled=false
     ulimits:
@@ -65,7 +65,7 @@ services:
 
   # Optional for viewing Elasticsearch terminology search service
   # http://localhost:5601
-  bel_kibana:
+  kibana:
     container_name: kibana
     image: docker.elastic.co/kibana/kibana:6.5.4
     ports:
@@ -92,9 +92,8 @@ services:
         max-file: "3"
     restart: unless-stopped
 
-
   traefik:
-    image: traefik:1.7.4
+    image: traefik:1.7.7
     container_name: traefik
     ports:
       - "80:80"
