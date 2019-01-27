@@ -374,7 +374,7 @@ if __name__ == "__main__":
 
     # test with a sample XML files
 
-    with open("example.xml", "r") as fhin:
+    with open("example_2019.xml", "r") as fhin:
         xml_chunk = fhin.read()
 
     P = PubMed_XML_Parser(xml_chunk)
