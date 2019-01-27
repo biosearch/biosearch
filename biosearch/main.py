@@ -8,12 +8,13 @@ Usage:  main.py
     content into Elasticsearch
 
 """
+from biosearch.Config import config
+import biosearch.pubmed.load
 
 
 def main():
-    pass
+    biosearch.pubmed.load.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

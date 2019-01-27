@@ -1,0 +1,20 @@
+
+
+# add or use pm2es.sqlite for the sqlite file
+elasticsearch: http://elasticsearch:9200
+sqlite_fn: /db/biosearch.sqlite
+
+
+## Logging setup
+logging:
+  version: 1
+  disable_existing_loggers: False
+  log_level: INFO
+  loggers:
+    urllib3:
+      level: CRITICAL
+    requests:
+      level: WARNING
+    elasticsearch:
+      level: WARNING
+
