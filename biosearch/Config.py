@@ -1,8 +1,12 @@
 import os
+import yaml
+import sys
 
-config = {}
 
-config['es_mappings'] = os.getenv('ES_MAPPINGS', '/conf/es_mappings.yml')
-config['conf_dir'] = os.getenv('CONF_DIR', '/conf')
-config['host_name'] = os.getenv('HOST_NAME', '')
-config['db_fn'] = os.getenv('DB_FN', '/db/biosearch.sqlite')
+conf_dir = os.getenv("CONF_DIR", "/conf")
+
+with open(f"{conf_dir}/biosearch.yml", "r") as f:
+    config = yaml.load(f)
+
+if not config:
+    sys.exit(f"Could not load configuration file: {conf_dir}/biosearch.yml")
