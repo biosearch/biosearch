@@ -8,12 +8,19 @@ Usage:  main.py
     content into Elasticsearch
 
 """
-from biosearch.Config import config
+import time
+import schedule
+
 import biosearch.pubmed.load
+from biosearch.Config import config
 
 
 def main():
-    biosearch.pubmed.load.start()
+
+    schedule.every().day.at("22:45").do(biosearch.pubmed.load.start())
+
+    while True:
+        schedule.run_pending()
 
 
 if __name__ == "__main__":
