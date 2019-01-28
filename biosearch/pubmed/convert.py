@@ -111,15 +111,15 @@ class PubMed_XML_Parser:
                 # print('author_chunk:', author_chunk)
                 try:
                     last_name = author_chunk.find("LastName").text
-                except:
+                except Exception:
                     last_name = ""
                 try:
                     first_name = author_chunk.find("ForeName").text
-                except:
+                except Exception:
                     first_name = ""
                 try:
                     initials = author_chunk.find("Initials").text
-                except:
+                except Exception:
                     initials = ""
                 name = "%s, %s %s" % (last_name, first_name, initials)
                 all_auth_affs = list()
@@ -127,7 +127,7 @@ class PubMed_XML_Parser:
                 try:
                     for aff in aff_chunk.findall("Affiliation"):
                         all_auth_affs.append(aff.text)
-                except:
+                except Exception:
                     pass
                     # print('missing affiliations')
                 authors.append((name, "; ".join(all_auth_affs)))
@@ -194,33 +194,37 @@ class PubMed_XML_Parser:
         try:
             issn_type = issn_chunk.attrib.get("IssnType", "")
             if issn_type is not None:
-                journal_info["ISSN"] = issn_chunk.text
-        except:
+                journal_info["issn"] = issn_chunk.text
+        except Exception:
             pass
         journal_info["title"] = journal_chunk.find("Title").text
         journal_info["abbrev"] = journal_chunk.find("ISOAbbreviation").text
         issue_chunk = journal_chunk.find("JournalIssue")
         try:
             journal_info["volume"] = issue_chunk.find("Volume").text
-        except:
+        except Exception:
             pass
         try:
             journal_info["issue"] = issue_chunk.find("Issue").text
-        except:
+        except Exception:
             pass
         pubdate_chunk = issue_chunk.find("PubDate")
         try:
             journal_info["pubyear"] = pubdate_chunk.find("Year").text
-        except:
-            pass
+        except Exception:
+            journal_info["pubyear"] = "YYYY"
         try:
             journal_info["pubmonth"] = pubdate_chunk.find("Month").text
-        except:
-            pass
+        except Exception:
+            journal_info["pubmonth"] = "MMM"
+        try:
+            journal_info["pubday"] = pubdate_chunk.find("Day").text
+        except Exception:
+            journal_info["pubday"] = "dd"
         journal_chunk = xml_record.find("Article/Pagination")
         try:
             journal_info["pages"] = journal_chunk.find("MedlinePgn").text
-        except:
+        except Exception:
             pass
         return journal_info
 
@@ -333,7 +337,7 @@ class PubMed_XML_Parser:
                 if id_type is not None:
                     article_id = article_id_element.text
                     references.append((id_type, article_id))
-            except:
+            except Exception:
                 pass
 
         return references
@@ -366,8 +370,32 @@ def xml_to_json(xml_chunk):
     """
     P = PubMed_XML_Parser(xml_chunk)
 
-    json_record = {}
-    yield json_record
+    for PubmedArticle in ET.fromstring(xml_chunk):
+        json_record = {}
+        MedlineCitation = PubmedArticle.find("MedlineCitation")
+        PubmedData = PubmedArticle.find("PubmedData")
+        json_record["pmid"] = P.get_pmid(MedlineCitation)
+        json_record["title"] = P.get_title(MedlineCitation)
+        json_record["pubtype"] = P.get_pub_type(MedlineCitation)
+        json_record["mesh"] = P.get_mesh_terms(MedlineCitation)
+        json_record["chem"] = P.get_chemical_substances(MedlineCitation)
+        json_record["kwds"] = P.get_keywords(MedlineCitation)
+        json_record["abstract"] = P.get_abstract(MedlineCitation)
+        json_record["authors"] = P.get_author_info(MedlineCitation)
+        journal_info = P.get_journal_info(MedlineCitation)
+        json_record["journal_issn"] = journal_info["issn"]
+        json_record["journal_title"] = journal_info["title"]
+        json_record["journal_volume"] = journal_info["volume"]
+        json_record["journal_issue"] = journal_info["issue"]
+        json_record["journal_pages"] = journal_info["pages"]
+        json_record["journal_abbrev"] = journal_info["abbrev"]
+        json_record["journal_pubyear"] = journal_info["pubyear"]
+        json_record["journal_pubmonth"] = journal_info["pubmonth"]
+        json_record["journal_pubday"] = journal_info["pubday"]
+        json_record["references"] = P.get_reference_list(PubmedData)
+        yield json_record
+
+    return
 
 
 if __name__ == "__main__":
