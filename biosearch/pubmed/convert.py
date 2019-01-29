@@ -342,6 +342,24 @@ class PubMed_XML_Parser:
 
         return references
 
+    def get_pmc(self, xml_record):
+        """
+        Extract PMC ID from article XML.
+
+        Args:
+            xml_record: PubMed article PubmedData element
+
+        Returns pmc, string with article PMC ID.
+        """
+        for article_id_element in xml_record.findall("ArticleIdList/ArticleId"):
+            try:
+                id_type = article_id_element.attrib.get("IdType", "")
+                if id_type == "pmc":
+                    return article_id_element.text
+            except Exception:
+                pass
+        return "NA"
+
 
 ##----------------------------------------------------------------------------##
 
@@ -375,6 +393,7 @@ def xml_to_json(xml_chunk):
         MedlineCitation = PubmedArticle.find("MedlineCitation")
         PubmedData = PubmedArticle.find("PubmedData")
         json_record["pmid"] = P.get_pmid(MedlineCitation)
+        json_record["pmc"] = P.get_pmc(PubmedData)
         json_record["title"] = P.get_title(MedlineCitation)
         json_record["pubtype"] = P.get_pub_type(MedlineCitation)
         json_record["mesh"] = P.get_mesh_terms(MedlineCitation)
@@ -403,6 +422,7 @@ if __name__ == "__main__":
     # test with a sample XML files
 
     with open("example_2019.xml", "r") as fhin:
+        # with open("example_2018.xml", "r") as fhin:
         xml_chunk = fhin.read()
 
     P = PubMed_XML_Parser(xml_chunk)
@@ -412,35 +432,27 @@ if __name__ == "__main__":
         print("-" * 80)
         MedlineCitation = PubmedArticle.find("MedlineCitation")
         PubmedData = PubmedArticle.find("PubmedData")
-        # pmid = MedlineCitation.find('PMID').text
         pmid = P.get_pmid(MedlineCitation)
         print("PMID:", pmid)
+        pmc = P.get_pmc(PubmedData)
+        print("PMC:", pmc)
         title = P.get_title(MedlineCitation)
         print("Title:", title)
         pubtype = P.get_pub_type(MedlineCitation)
         print("Pub Type:", ", ".join(pubtype))
         mesh = P.get_mesh_terms(MedlineCitation)
-        #        print('MeSH Headings:', mesh)
+        print("MeSH Headings:", mesh)
         chem = P.get_chemical_substances(MedlineCitation)
-        #        print('Chemical Substances:', chem)
+        print("Chemical Substances:", chem)
         kwds = P.get_keywords(MedlineCitation)
-        #        print('Keywords:', kwds)
+        print("Keywords:", kwds)
         abstract = P.get_abstract(MedlineCitation)
-        #        print('Abstract:', len(abstract), 'characters')
+        print("Abstract:", len(abstract), "characters")
         authors = P.get_author_info(MedlineCitation)
-        #        print('Authors:', authors)
+        print("Authors:", authors)
         journal_info = P.get_journal_info(MedlineCitation)
-        #        print('Journal:', journal_info)
+        print("Journal:", journal_info)
         print("PubYear:", journal_info["pubyear"])
         references = P.get_reference_list(PubmedData)
         print("References:", references)
         print("\n")
-
-    """
-    medline_citations = tree.findall('//MedlineCitationSet/MedlineCitation')
-    if len(medline_citations) == 0:
-        medline_citations = tree.findall('//MedlineCitation')
-    for xml_record in medline_citations:
-        pmid = P.get_pmid(MedlineCitation)
-        print('PMID:', pmid)
-    """
