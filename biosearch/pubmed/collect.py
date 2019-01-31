@@ -39,7 +39,7 @@ class Downloader:
                 ftp_host.chdir(self.repo[src])
                 for fn in ftp_host.listdir(ftp_host.curdir):
                     if fn.endswith("xml.gz"):
-                        self.file_list.append(src + "/" + fn)
+                        self.file_list.append(self.repo[src] + fn)
 
     def xml_file_generator(self, filter=None):
         """
@@ -56,13 +56,12 @@ class Downloader:
 
             # file number
             fname = os.path.basename(fpath)
-            # print(">>>", fpath, "::", fname)
             this_file_number = int(fname[9:13])
             if filter and not filter[0] <= this_file_number <= filter[1]:
                 continue
-
-            url = "ftp://ftp.ncbi.nlm.nih.gov/pubmed/%s" % (fpath)
-            # print(url)
+            print(">>>", fpath, "::", fname)
+            url = "ftp://ftp.ncbi.nlm.nih.gov/%s" % (fpath)
+            print(url)
             mysock = urllib.request.urlopen(url)
             memfile = BytesIO(mysock.read())
             yield gzip.GzipFile(fileobj=memfile).read().decode("utf-8")

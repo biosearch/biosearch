@@ -196,18 +196,21 @@ class PubMed_XML_Parser:
             if issn_type is not None:
                 journal_info["issn"] = issn_chunk.text
         except Exception:
-            pass
+            journal_info["issn"] = ""
         journal_info["title"] = journal_chunk.find("Title").text
-        journal_info["abbrev"] = journal_chunk.find("ISOAbbreviation").text
+        try:
+            journal_info["abbrev"] = journal_chunk.find("ISOAbbreviation").text
+        except Exception:
+            journal_info["abbrev"] = ""
         issue_chunk = journal_chunk.find("JournalIssue")
         try:
             journal_info["volume"] = issue_chunk.find("Volume").text
         except Exception:
-            pass
+            journal_info["volume"] = ""
         try:
             journal_info["issue"] = issue_chunk.find("Issue").text
         except Exception:
-            pass
+            journal_info["issue"] = ""
         pubdate_chunk = issue_chunk.find("PubDate")
         try:
             journal_info["pubyear"] = pubdate_chunk.find("Year").text
@@ -225,7 +228,7 @@ class PubMed_XML_Parser:
         try:
             journal_info["pages"] = journal_chunk.find("MedlinePgn").text
         except Exception:
-            pass
+            journal_info["pages"] = ""
         return journal_info
 
     def get_mesh_terms(self, xml_record):
