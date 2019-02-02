@@ -187,6 +187,22 @@ class PubMed_XML_Parser:
             <MedlinePgn>950-968</MedlinePgn>
         </Pagination>
         ...
+
+        Alternative format
+        ...
+        <Journal>
+            <ISSN IssnType="Electronic">1615-5742</ISSN>
+            <JournalIssue CitedMedium="Internet">
+                <Volume>21</Volume>
+                <Issue>6</Issue>
+                <PubDate>
+                    <MedlineDate>2018 Nov-Dec</MedlineDate>
+                </PubDate>
+            </JournalIssue>
+            <Title>Pediatric and developmental pathology : the official journal of the Society for Pediatric Pathology and the Paediatric Pathology Society</Title>
+            <ISOAbbreviation>Pediatr. Dev. Pathol.</ISOAbbreviation>
+        </Journal>
+        ...
         """
         journal_info = dict()
         journal_chunk = xml_record.find("Article/Journal")
@@ -224,6 +240,21 @@ class PubMed_XML_Parser:
             journal_info["pubday"] = pubdate_chunk.find("Day").text
         except Exception:
             journal_info["pubday"] = "dd"
+        if journal_info["pubyear"] == "YYYY":
+            try:
+                medline_date = pubdate_chunk.find("MedlineDate").text
+                bits = re.split("\s+", medline_date)
+                if re.match("^\d\d\d\d$", bits[0]):
+                    journal_info["pubyear"] = bits[0]
+                    if len(bits) > 1:
+                        journal_info["pubmonth"] = bits[1]
+                    if len(bits) > 2:
+                        journal_info["pubday"] = bits[2]
+                elif bits[0] in ["Spring", "Summer", "Fall", "Winter"]:
+                    journal_info["pubmonth"] = bits[0]
+                    journal_info["pubyear"] = bits[1]
+            except Exception:
+                journal_info["pubyear"] = "YYYY"
         journal_chunk = xml_record.find("Article/Pagination")
         try:
             journal_info["pages"] = journal_chunk.find("MedlinePgn").text
