@@ -41,10 +41,12 @@ for xml_file in D.xml_file_generator([974, 974]):
             n_pmc += 1
         if len(record["references"]) > 0:
             n_refs += 1
+        else:
+            bad_recs.append(record["pmid"])
         pubyears[record["journal_pubyear"]] += 1
         pubmonths[record["journal_pubmonth"]] += 1
-        if record["journal_pubyear"] == "YYYY":
-            bad_recs.append(record["pmid"])
+        # if record["references"] == "YYYY":
+        #    bad_recs.append(record["pmid"])
         print("%d.%d. PMID %s: %s" % (idx_file, idx_record, record["pmid"], record["title"]))
 
     print("")
@@ -53,5 +55,5 @@ for xml_file in D.xml_file_generator([974, 974]):
     print("... refs:", n_refs)
     print("... pubyears:", pubyears)
     print("... pubmonths:", pubmonths)
-    print("... bad records:", ", ".join(bad_recs))
+    print("... bad records (up to first 10):", ", ".join(bad_recs[:10]))
 #

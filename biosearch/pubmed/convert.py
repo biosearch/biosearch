@@ -376,7 +376,7 @@ class PubMed_XML_Parser:
 
         return references
 
-    def get_pmc(self, xml_record):
+    def get_articles_ids(self, xml_record):
         """
         Extract PMC ID from article XML.
 
@@ -385,14 +385,17 @@ class PubMed_XML_Parser:
 
         Returns pmc, string with article PMC ID.
         """
+        articles_ids = {"pmc": "", "doi": ""}
         for article_id_element in xml_record.findall("ArticleIdList/ArticleId"):
             try:
                 id_type = article_id_element.attrib.get("IdType", "")
                 if id_type == "pmc":
-                    return article_id_element.text
+                    articles_ids["pmc"] = article_id_element.text
+                elif id_type == "doi":
+                    articles_ids["doi"] = article_id_element.text
             except Exception:
                 pass
-        return "NA"
+        return articles_ids
 
 
 ##----------------------------------------------------------------------------##
@@ -427,7 +430,8 @@ def xml_to_json(xml_chunk):
         MedlineCitation = PubmedArticle.find("MedlineCitation")
         PubmedData = PubmedArticle.find("PubmedData")
         json_record["pmid"] = P.get_pmid(MedlineCitation)
-        json_record["pmc"] = P.get_pmc(PubmedData)
+        json_record["pmc"] = P.get_articles_ids(PubmedData)["pmc"]
+        json_record["doi"] = P.get_articles_ids(PubmedData)["doi"]
         json_record["title"] = P.get_title(MedlineCitation)
         json_record["pubtype"] = P.get_pub_type(MedlineCitation)
         json_record["mesh"] = P.get_mesh_terms(MedlineCitation)
@@ -468,8 +472,10 @@ if __name__ == "__main__":
         PubmedData = PubmedArticle.find("PubmedData")
         pmid = P.get_pmid(MedlineCitation)
         print("PMID:", pmid)
-        pmc = P.get_pmc(PubmedData)
+        pmc = P.get_articles_ids(PubmedData)["pmc"]
         print("PMC:", pmc)
+        doi = P.get_articles_ids(PubmedData)["doi"]
+        print("doi:", doi)
         title = P.get_title(MedlineCitation)
         print("Title:", title)
         pubtype = P.get_pub_type(MedlineCitation)
